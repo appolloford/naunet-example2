@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: CI
+name: Ubuntu
 
 # Controls when the action will run. 
 on:
@@ -31,10 +31,18 @@ jobs:
       - name: Install SuiteSparse dependencies
         run: sudo apt-get install libgmp3-dev libmpc-dev
 
+      - uses: actions/cache@v2
+        id: suitesparse
+        with:
+          path: /usr/local/SuiteSparse-5.9.0
+          key: ${{ runner.os }}-suitesparse
+
       - name: Install SuiteSparse
+        if: steps.suitesparse.outputs.cache-hit != 'true'
         run: |
           wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/v5.9.0.tar.gz 
           tar -zxvf v5.9.0.tar.gz
           cd SuiteSparse-5.9.0
-          make library
-          make install INSTALL=/usr/local
+          make library -j2
+          sudo make install INSTALL=/usr/local
+
