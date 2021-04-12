@@ -51,14 +51,15 @@ jobs:
         run: sudo apt-get install libgmp3-dev libmpc-dev
 
       - uses: actions/cache@v2
-        id: suitesparse
+        id: cache
         with:
-          path: /usr/local/suitesparse
-          key: ${{ runner.os }}-suitesparse
+          path: /usr/local
+          key: ${{ runner.os }}-cache
 
       - name: Install SuiteSparse
-        if: steps.suitesparse.outputs.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          cd $HOME
           wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/v5.9.0.tar.gz 
           tar -zxvf v5.9.0.tar.gz
           cd SuiteSparse-5.9.0
@@ -79,4 +80,26 @@ jobs:
             echo "LD_LIBRARY_PATH=${CUDA_PATH}/lib:${LD_LIBRARY_PATH}" >> $GITHUB_ENV
           fi
         shell: bash
+
+      - name: Install SUNDIALS
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          cd $HOME
+          wget https://github.com/LLNL/sundials/releases/download/v5.7.0/sundials-5.7.0.tar.gz
+          tar -zxvf sundials-5.7.0.tar.gz
+          mkdir build-sundials && cd build-sundials
+          cmake ../sundials-5.7.0 -DENABLE_CUDA=ON -DCMAKE_CUDA_COMPILER=nvcc \
+                -DCMAKE_CUDA_ARCHITECTURES=61 -DSUNDIALS_INDEX_SIZE=32 \
+                -DENABLE_KLU=ON -DEXAMPLES_ENABLE_C=OFF \
+                -DEXAMPLES_ENABLE_CUDA=OFF -DEXAMPLES_INSTALL=OFF
+          make -j4 && sudo make install
+
+      - name: Configure cmake
+        run: |
+          cd $GITHUB_WORKSPACE
+          cmake -S. -B ${{ env.build_dir }} -DCMAKE_BUILD_TYPE=${{ env.config }} \
+                -DCMAKE_CUDA_ARCHITECTURES=61 -DSUNDIALS_DIR=/usr/local/lib/cmake/sundials
+
+      - name: Build
+        run: cmake --build build --verbose
 
