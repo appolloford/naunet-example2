@@ -18,7 +18,26 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+
+      fail-fast: false
+
+      matrix:
+        include:
+          - os: ubuntu-18.04
+            cuda: "11.0"
+
+          - os: ubuntu-18.04
+            cuda: "10.2"
+
+          - os: ubuntu-18.04
+            cuda: "10.1"
+
+    env:
+      build_dir: "build"
+      config: "Release"
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -34,7 +53,7 @@ jobs:
       - uses: actions/cache@v2
         id: suitesparse
         with:
-          path: /usr/local/SuiteSparse-5.9.0
+          path: /usr/local/suitesparse
           key: ${{ runner.os }}-suitesparse
 
       - name: Install SuiteSparse
@@ -43,6 +62,21 @@ jobs:
           wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/v5.9.0.tar.gz 
           tar -zxvf v5.9.0.tar.gz
           cd SuiteSparse-5.9.0
-          make library -j2
-          sudo make install INSTALL=/usr/local
+          make library -j4
+          sudo make install INSTALL=/usr/local/suitesparse
+
+      # Use the script from https://github.com/ptheywood/cuda-cmake-github-actions
+      - name: Install CUDA
+        env:
+          cuda: ${{ matrix.cuda }}
+        run: |
+          source ./scripts/actions/install_cuda_ubuntu.sh
+          if [[ $? -eq 0 ]]; then
+            # Set paths for subsequent steps, using ${CUDA_PATH}
+            echo "Adding CUDA to CUDA_PATH, PATH and LD_LIBRARY_PATH"
+            echo "CUDA_PATH=${CUDA_PATH}" >> $GITHUB_ENV
+            echo "${CUDA_PATH}/bin" >> $GITHUB_PATH
+            echo "LD_LIBRARY_PATH=${CUDA_PATH}/lib:${LD_LIBRARY_PATH}" >> $GITHUB_ENV
+          fi
+        shell: bash
 
