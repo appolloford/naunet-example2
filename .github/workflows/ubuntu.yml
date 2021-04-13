@@ -55,7 +55,7 @@ jobs:
         id: suitesparse
         with:
           path: /usr/local/suitesparse
-          key: ${{ runner.os }}-suitesparse
+          key: ${{ matrix.os }}-suitesparse
 
       - name: Install SuiteSparse
         if: steps.suitesparse.outputs.cache-hit != 'true'
@@ -87,7 +87,7 @@ jobs:
         id: sundials
         with:
           path: /usr/local/sundials
-          key: ${{ runner.os }}-sundials
+          key: ${{ matrix.os }}-sundials
 
       - name: Install SUNDIALS
         if: steps.sundials.outputs.cache-hit != 'true'
@@ -96,7 +96,8 @@ jobs:
           wget https://github.com/LLNL/sundials/releases/download/v5.7.0/sundials-5.7.0.tar.gz
           tar -zxvf sundials-5.7.0.tar.gz
           mkdir build-sundials && cd build-sundials
-          cmake ../sundials-5.7.0 -DENABLE_CUDA=ON -DCMAKE_CUDA_COMPILER=nvcc \
+          cmake ../sundials-5.7.0 -DCMAKE_INSTALL_PREFIX=/usr/local/sundials \
+                -DENABLE_CUDA=ON -DCMAKE_CUDA_COMPILER=nvcc \
                 -DCMAKE_CUDA_ARCHITECTURES=61 -DSUNDIALS_INDEX_SIZE=32 \
                 -DENABLE_KLU=ON -DKLU_INCLUDE_DIR=/usr/local/suitesparse/include \
                 -DKLU_LIBRARY_DIR=/usr/local/suitesparse/lib -DEXAMPLES_ENABLE_C=OFF \
@@ -107,8 +108,13 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE
           cmake -S. -B ${{ env.build_dir }} -DCMAKE_BUILD_TYPE=${{ env.config }} \
-                -DCMAKE_CUDA_ARCHITECTURES=61 -DSUNDIALS_DIR=/usr/local/lib/cmake/sundials
+                -DCMAKE_CUDA_ARCHITECTURES=61 -DSUNDIALS_DIR=/usr/local/sundials/lib/cmake/sundials
 
       - name: Build
         run: cmake --build build --verbose
+
+      - name: Run
+        run: |
+          cd build/test/
+          ./test_singlegrid.x
 
