@@ -50,14 +50,15 @@ jobs:
       - name: Install SuiteSparse dependencies
         run: sudo apt-get install libgmp3-dev libmpc-dev
 
-      - uses: actions/cache@v2
-        id: cache
+      - name: Cache SuiteSparse
+        uses: actions/cache@v2
+        id: suitesparse
         with:
-          path: /usr/local
-          key: ${{ runner.os }}-cache
+          path: /usr/local/suitesparse
+          key: ${{ runner.os }}-suitesparse
 
       - name: Install SuiteSparse
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.suitesparse.outputs.cache-hit != 'true'
         run: |
           cd $HOME
           wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/v5.9.0.tar.gz 
@@ -81,8 +82,15 @@ jobs:
           fi
         shell: bash
 
+      - name: Cache SUNDIALS
+        uses: actions/cache@v2
+        id: sundials
+        with:
+          path: /usr/local/sundials
+          key: ${{ runner.os }}-sundials
+
       - name: Install SUNDIALS
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.sundials.outputs.cache-hit != 'true'
         run: |
           cd $HOME
           wget https://github.com/LLNL/sundials/releases/download/v5.7.0/sundials-5.7.0.tar.gz
@@ -90,7 +98,8 @@ jobs:
           mkdir build-sundials && cd build-sundials
           cmake ../sundials-5.7.0 -DENABLE_CUDA=ON -DCMAKE_CUDA_COMPILER=nvcc \
                 -DCMAKE_CUDA_ARCHITECTURES=61 -DSUNDIALS_INDEX_SIZE=32 \
-                -DENABLE_KLU=ON -DEXAMPLES_ENABLE_C=OFF \
+                -DENABLE_KLU=ON -DKLU_INCLUDE_DIR=/usr/local/suitesparse/include \
+                -DKLU_LIBRARY_DIR=/usr/local/suitesparse/lib -DEXAMPLES_ENABLE_C=OFF \
                 -DEXAMPLES_ENABLE_CUDA=OFF -DEXAMPLES_INSTALL=OFF
           make -j4 && sudo make install
 
