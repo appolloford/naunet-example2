@@ -113,8 +113,8 @@ jobs:
       - name: Build
         run: cmake --build build --verbose
 
-      - name: Run
-        run: |
-          cd build/test/
-          ./test_singlegrid.x
+      # - name: Run
+      #   run: |
+      #     cd build/test/
+      #     ./test_singlegrid.x
 
