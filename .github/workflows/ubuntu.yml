@@ -59,13 +59,7 @@ jobs:
 
       - name: Install SuiteSparse
         if: steps.suitesparse.outputs.cache-hit != 'true'
-        run: |
-          cd $HOME
-          wget https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/v5.9.0.tar.gz 
-          tar -zxvf v5.9.0.tar.gz
-          cd SuiteSparse-5.9.0
-          make library -j4
-          sudo make install INSTALL=/usr/local/suitesparse
+        run: source ./scripts/actions/install_suitesparse.sh
 
       # Use the script from https://github.com/ptheywood/cuda-cmake-github-actions
       - name: Install CUDA
@@ -91,22 +85,10 @@ jobs:
 
       - name: Install SUNDIALS
         if: steps.sundials.outputs.cache-hit != 'true'
-        run: |
-          cd $HOME
-          wget https://github.com/LLNL/sundials/releases/download/v5.7.0/sundials-5.7.0.tar.gz
-          tar -zxvf sundials-5.7.0.tar.gz
-          mkdir build-sundials && cd build-sundials
-          cmake ../sundials-5.7.0 -DCMAKE_INSTALL_PREFIX=/usr/local/sundials \
-                -DENABLE_CUDA=ON -DCMAKE_CUDA_COMPILER=nvcc \
-                -DCMAKE_CUDA_ARCHITECTURES=61 -DSUNDIALS_INDEX_SIZE=32 \
-                -DENABLE_KLU=ON -DKLU_INCLUDE_DIR=/usr/local/suitesparse/include \
-                -DKLU_LIBRARY_DIR=/usr/local/suitesparse/lib -DEXAMPLES_ENABLE_C=OFF \
-                -DEXAMPLES_ENABLE_CUDA=OFF -DEXAMPLES_INSTALL=OFF
-          make -j4 && sudo make install
+        run: source ./scripts/actions/install_sundials.sh
 
       - name: Configure cmake
         run: |
-          cd $GITHUB_WORKSPACE
           cmake -S. -B ${{ env.build_dir }} -DCMAKE_BUILD_TYPE=${{ env.config }} \
                 -DCMAKE_CUDA_ARCHITECTURES=61 -DSUNDIALS_DIR=/usr/local/sundials/lib/cmake/sundials
 
